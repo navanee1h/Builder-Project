@@ -27,6 +27,7 @@ const Contact = () => {
         }),
         onSubmit: async (values, { resetForm }) => {
             const phoneNumber = "919744702482";
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
             // 1. Prepare data for Backend
             const leadData = {
@@ -39,7 +40,7 @@ const Contact = () => {
 
             // 2. Save to Database (Backend)
             try {
-                const response = await fetch('http://localhost:5000/api/leads', {
+                const response = await fetch(`${API_URL}/api/leads`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -50,15 +51,9 @@ const Contact = () => {
                 const data = await response.json();
                 if (data.success) {
                     console.log('Lead saved successfully:', data.data);
-                } else {
-                    console.error('Failed to save lead:', data.message);
-                }
-            } catch (error) {
-                console.error('Error saving lead:', error);
-            }
 
-            // 3. Open WhatsApp (After Save Attempt)
-            const waMessage = `
+                    // 3. Open WhatsApp (Only on success)
+                    const waMessage = `
 Hello,
 I need ${values.service} service.
 
@@ -67,12 +62,20 @@ Name: ${values.name}
 Phone: ${values.phone}
 Message: ${values.message}
 `;
-            const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(waMessage)}`;
-            window.open(url, "_blank");
+                    const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(waMessage)}`;
+                    window.open(url, "_blank");
 
-            setSubmitted(true);
-            setTimeout(() => setSubmitted(false), 5000);
-            resetForm();
+                    setSubmitted(true);
+                    setTimeout(() => setSubmitted(false), 5000);
+                    resetForm();
+                } else {
+                    console.error('Failed to save lead:', data.message);
+                    alert('Failed to submit enquiry: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error saving lead:', error);
+                alert('Error submitting enquiry. Please try again.');
+            }
         },
     });
 

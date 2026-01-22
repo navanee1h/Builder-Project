@@ -89,10 +89,11 @@ const Leads = () => {
 
     const fetchData = async () => {
         setLoading(true);
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
         try {
             const [leadsRes, partnersRes] = await Promise.all([
-                axios.get('http://localhost:5000/api/leads'),
-                axios.get('http://localhost:5000/api/partners')
+                axios.get(`${API_URL}/api/leads`),
+                axios.get(`${API_URL}/api/partners`)
             ]);
             setLeads(leadsRes.data.data || []);
             setPartners(partnersRes.data.data || []);
@@ -108,8 +109,9 @@ const Leads = () => {
     }, []);
 
     const handleStatusChange = async (id, newStatus) => {
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
         try {
-            await axios.put(`http://localhost:5000/api/leads/${id}/status`, { status: newStatus });
+            await axios.put(`${API_URL}/api/leads/${id}/status`, { status: newStatus });
             // Optimistic update
             setLeads(leads.map(lead => lead._id === id ? { ...lead, status: newStatus } : lead));
         } catch (error) {
@@ -119,8 +121,9 @@ const Leads = () => {
     };
 
     const handleAssign = async (leadId, partnerId) => {
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
         try {
-            await axios.put(`http://localhost:5000/api/leads/${leadId}/assign`, { partnerId });
+            await axios.put(`${API_URL}/api/leads/${leadId}/assign`, { partnerId });
             // Optimistic update
             const partner = partners.find(p => p._id === partnerId);
             setLeads(leads.map(lead => lead._id === leadId ? { ...lead, assignedTo: partner, status: 'Assigned' } : lead));
