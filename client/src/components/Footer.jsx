@@ -74,9 +74,6 @@ const Footer = () => {
 
                 <div className="border-t border-gray-800 pt-8 text-center text-gray-500 text-sm">
                     <p>&copy; {new Date().getFullYear()} ABC Builders & Home Services. All rights reserved.</p>
-                    <div className="mt-2">
-                        <a href="/admin/login" className="text-gray-700 hover:text-gray-500 transition-colors text-xs">Admin Login</a>
-                    </div>
                 </div>
             </div>
         </footer>
