@@ -158,8 +158,8 @@ const Leads = () => {
         <div>
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800">Leads Management</h1>
-                    <p className="text-gray-500 text-sm">Manage and track all customer enquiries</p>
+                    <h1 className="text-2xl font-bold text-gray-800">Leads Managementsssss</h1>
+                    <p className="text-gray-500 text-sm">Manage and track all customer enquiries hhghghgh</p>
                 </div>
                 <div className="flex gap-2">
                     <button onClick={fetchData} className="p-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-600 transition">
