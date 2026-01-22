@@ -19,8 +19,9 @@ const Partners = () => {
 
     const fetchPartners = async () => {
         setLoading(true);
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
         try {
-            const res = await axios.get('http://localhost:5000/api/partners');
+            const res = await axios.get(`${API_URL}/api/partners`);
             setPartners(res.data.data || []);
         } catch (error) {
             console.error("Error fetching partners:", error);
@@ -37,9 +38,9 @@ const Partners = () => {
 
     const handleDelete = async (id) => {
         if (!window.confirm("Are you sure you want to delete this partner? This action cannot be undone.")) return;
-
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
         try {
-            await axios.delete(`http://localhost:5000/api/partners/${id}`);
+            await axios.delete(`${API_URL}/api/partners/${id}`);
             setPartners(partners.filter(p => p._id !== id));
         } catch (error) {
             console.error("Failed to delete partner", error);
@@ -48,8 +49,9 @@ const Partners = () => {
     };
 
     const handleToggleStatus = async (id, currentStatus) => {
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
         try {
-            await axios.put(`http://localhost:5000/api/partners/${id}/status`, { isActive: !currentStatus });
+            await axios.put(`${API_URL}/api/partners/${id}/status`, { isActive: !currentStatus });
             setPartners(partners.map(p => p._id === id ? { ...p, isActive: !currentStatus } : p));
         } catch (error) {
             console.error("Failed to update status", error);
@@ -79,14 +81,15 @@ const Partners = () => {
         validationSchema,
         onSubmit: async (values) => {
             setSubmitError('');
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
             try {
                 if (editingPartner) {
                     // Update
-                    const res = await axios.put(`http://localhost:5000/api/partners/${editingPartner._id}`, values);
+                    const res = await axios.put(`${API_URL}/api/partners/${editingPartner._id}`, values);
                     setPartners(partners.map(p => p._id === editingPartner._id ? res.data.data : p));
                 } else {
                     // Create
-                    const res = await axios.post('http://localhost:5000/api/partners', values);
+                    const res = await axios.post(`${API_URL}/api/partners`, values);
                     setPartners([res.data.data, ...partners]);
                 }
                 setIsModalOpen(false);

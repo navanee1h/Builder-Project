@@ -18,11 +18,12 @@ const Dashboard = () => {
         const fetchStats = async () => {
             try {
                 // Fetch Leads
-                const leadsRes = await axios.get('http://localhost:5000/api/leads');
+                const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+                const leadsRes = await axios.get(`${API_URL}/api/leads`);
                 const leads = leadsRes.data.data || [];
 
                 // Fetch Partners
-                const partnersRes = await axios.get('http://localhost:5000/api/partners');
+                const partnersRes = await axios.get(`${API_URL}/api/partners`);
                 const partners = partnersRes.data.data; // Assuming structure
 
                 const newLeads = leads.filter(l => l.status === 'New').length;

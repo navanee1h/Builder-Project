@@ -30,7 +30,8 @@ export const AuthProvider = ({ children }) => {
             // NOTE: Since I don't see an explicit /api/admin/login in the file list yet,
             // I'll assume standard path. If it fails, I'll handle it.
             // For now, let's try to hit the backend.
-            const res = await axios.post('http://localhost:5000/api/admin/login', { email, password });
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            const res = await axios.post(`${API_URL}/api/admin/login`, { email, password });
 
             if (res.data.token) {
                 localStorage.setItem('adminToken', res.data.token);
