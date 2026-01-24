@@ -39,7 +39,7 @@ export const createLead = async (req, res) => {
 
 export const getLeads = async (req, res) => {
   try {
-    const leads = await Lead.find().populate('assignedTo', 'name email').sort({ createdAt: -1 });
+    const leads = await Lead.find({ isDeleted: false }).populate('assignedTo', 'name email').sort({ createdAt: -1 });
     res.status(200).json({
       success: true,
       data: leads
@@ -64,8 +64,44 @@ export const updateLeadStatus = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Lead not found' });
     }
 
-    // Ensure status is valid env values if needed, but model handles enum validation
-    lead.status = status;
+    const normalizedStatus = status.toLowerCase();
+    lead.status = normalizedStatus;
+
+    // Set lifecycle timestamps
+    if (normalizedStatus === 'contacted' && !lead.contactedAt) {
+      lead.contactedAt = new Date();
+    }
+    if (normalizedStatus === 'closed' && !lead.closedAt) {
+      lead.closedAt = new Date();
+    }
+
+    await lead.save();
+
+    res.json({ success: true, data: lead });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Notify partner (update notifiedAt)
+// @route   PUT /api/leads/:id/notify
+// @access  Private (Admin)
+export const notifyPartner = async (req, res) => {
+  try {
+    const lead = await Lead.findById(req.params.id);
+
+    if (!lead) {
+      return res.status(404).json({ success: false, message: 'Lead not found' });
+    }
+
+    lead.notifiedAt = new Date();
+
+    // Auto-update status to contacted if currently assigned
+    if (lead.status === 'assigned') {
+      lead.status = 'contacted';
+      lead.contactedAt = new Date();
+    }
+
     await lead.save();
 
     res.json({ success: true, data: lead });
@@ -116,7 +152,8 @@ export const deleteLead = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Lead not found' });
     }
 
-    await lead.deleteOne();
+    lead.isDeleted = true;
+    await lead.save();
 
     res.json({ success: true, message: 'Lead removed' });
   } catch (error) {

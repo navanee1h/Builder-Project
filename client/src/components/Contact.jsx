@@ -26,7 +26,7 @@ const Contact = () => {
             message: Yup.string()
         }),
         onSubmit: async (values, { resetForm }) => {
-            const phoneNumber = "919744702482";
+            const phoneNumber = "918606093213";
             const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
             // 1. Prepare data for Backend
@@ -56,7 +56,6 @@ const Contact = () => {
                     const waMessage = `
 Hello,
 I need ${values.service} service.
-
 Location: ${values.area}
 Name: ${values.name}
 Phone: ${values.phone}
@@ -97,7 +96,7 @@ Message: ${values.message}
                                 </div>
                                 <div>
                                     <p className="text-sm text-gray-400">Call Us</p>
-                                    <p className="font-bold text-lg">+91 97447 02482</p>
+                                    <p className="font-bold text-lg">+91 8606093213</p>
                                 </div>
                             </div>
                         </div>
@@ -139,7 +138,7 @@ Message: ${values.message}
                                         name="phone"
                                         {...formik.getFieldProps('phone')}
                                         className={`w-full px-4 py-3 rounded-lg border ${formik.touched.phone && formik.errors.phone ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-secondary focus:border-transparent outline-none transition`}
-                                        placeholder="+91 97447 02482"
+                                        placeholder="+91 8606093213"
                                     />
                                     {formik.touched.phone && formik.errors.phone && (
                                         <div className="text-red-500 text-xs mt-1">{formik.errors.phone}</div>

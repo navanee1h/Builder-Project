@@ -3,6 +3,9 @@ import axios from 'axios';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { Search, Plus, MapPin, Wrench, Trash2, Edit, X, Save, AlertCircle } from 'lucide-react';
+import Skeleton from '@mui/material/Skeleton';
+import TableSkeleton from '../components/skeletons/TableSkeleton';
+import toast from 'react-hot-toast';
 
 const Partners = () => {
     const [partners, setPartners] = useState([]);
@@ -42,9 +45,10 @@ const Partners = () => {
         try {
             await axios.delete(`${API_URL}/api/partners/${id}`);
             setPartners(partners.filter(p => p._id !== id));
+            toast.success("Partner deleted successfully");
         } catch (error) {
             console.error("Failed to delete partner", error);
-            alert("Failed to delete partner");
+            toast.error("Failed to delete partner");
         }
     };
 
@@ -53,8 +57,10 @@ const Partners = () => {
         try {
             await axios.put(`${API_URL}/api/partners/${id}/status`, { isActive: !currentStatus });
             setPartners(partners.map(p => p._id === id ? { ...p, isActive: !currentStatus } : p));
+            toast.success(`Partner ${!currentStatus ? 'activated' : 'deactivated'} successfully`);
         } catch (error) {
             console.error("Failed to update status", error);
+            toast.error("Failed to update status");
         }
     };
 
@@ -87,16 +93,20 @@ const Partners = () => {
                     // Update
                     const res = await axios.put(`${API_URL}/api/partners/${editingPartner._id}`, values);
                     setPartners(partners.map(p => p._id === editingPartner._id ? res.data.data : p));
+                    toast.success("Partner updated successfully!");
                 } else {
                     // Create
                     const res = await axios.post(`${API_URL}/api/partners`, values);
                     setPartners([res.data.data, ...partners]);
+                    toast.success("Partner added successfully!");
                 }
                 setIsModalOpen(false);
                 formik.resetForm();
             } catch (error) {
                 console.error("Save failed", error);
-                setSubmitError(error.response?.data?.message || "Failed to save partner");
+                const message = error.response?.data?.message || "Failed to save partner";
+                setSubmitError(message);
+                toast.error(message);
             }
         }
     });
@@ -141,6 +151,26 @@ const Partners = () => {
         p.phone.includes(searchTerm) ||
         p.role?.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    if (loading) {
+        return (
+            <div>
+                <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                    <div>
+                        <Skeleton variant="text" width={250} height={40} animation="wave" />
+                        <Skeleton variant="text" width={300} height={24} animation="wave" />
+                    </div>
+                    <Skeleton variant="rectangular" width={140} height={42} animation="wave" sx={{ borderRadius: 2 }} />
+                </div>
+
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6">
+                    <Skeleton variant="rectangular" height={42} width="100%" sx={{ maxWidth: 450, borderRadius: 2 }} animation="wave" />
+                </div>
+
+                <TableSkeleton columns={6} />
+            </div>
+        );
+    }
 
     return (
         <div>

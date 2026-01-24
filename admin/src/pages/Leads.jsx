@@ -1,82 +1,60 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Search, RefreshCw, Filter } from 'lucide-react';
+import { Search, RefreshCw, Filter, Trash2, MessageCircle, Check } from 'lucide-react';
+import Skeleton from '@mui/material/Skeleton';
+import TableSkeleton from '../components/skeletons/TableSkeleton';
+import toast from 'react-hot-toast';
 
-const WhatsAppNotify = ({ lead }) => {
-    const [template, setTemplate] = useState('Professional');
-
+const WhatsAppNotify = ({ lead, onNotify }) => {
     if (!lead.assignedTo || !lead.assignedTo.phone) {
         return <span className="text-xs text-gray-400 italic">Not Assigned</span>;
     }
 
-    const handleSend = () => {
-        let message = "";
+    const isNotified = !!lead.notifiedAt;
+    const isClosed = lead.status === 'Closed' || lead.status === 'closed';
 
-        switch (template) {
-            case 'Urgent':
-                message = `
-🚨 New ${lead.serviceType} Work
-
-Location: ${lead.location}
-Customer: ${lead.name}
-Phone: ${lead.phone}
-
-Please call the customer immediately.
-`;
-                break;
-            case 'Friendly':
-                message = `
-New ${lead.serviceType} Enquiry
+    const handleSend = async () => {
+        const message = `
+🔔 New Lead Assigned
 
 Customer: ${lead.name}
-Phone: ${lead.phone}
-Place: ${lead.location}
-
-Please contact the customer and update us.
-Thank you.
-`;
-                break;
-            case 'Professional':
-            default:
-                message = `
-🔔 New Service Lead Assigned
-
-Customer Name: ${lead.name}
 Phone: ${lead.phone}
 Service: ${lead.serviceType}
 Location: ${lead.location}
 
-Please contact the customer as soon as possible.
-Thank you for your support.
+Please contact the customer ASAP.
 `;
-                break;
-        }
-
         const url = `https://wa.me/91${lead.assignedTo.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
         window.open(url, "_blank");
+
+        // Call Backend to persist notification state
+        await onNotify(lead._id);
+        toast.success("WhatsApp opened & Notification logged");
     };
 
+    if (isClosed && isNotified) {
+        return (
+            <span className="flex items-center gap-1 text-xs text-green-700 font-medium">
+                <Check size={14} /> Notified
+            </span>
+        );
+    }
+
     return (
-        <div className="flex flex-col gap-1 min-w-[120px]">
-            <select
-                value={template}
-                onChange={(e) => setTemplate(e.target.value)}
-                className="text-xs border border-gray-200 rounded p-1 outline-none focus:border-green-500 bg-gray-50 mb-1 w-full cursor-pointer"
-                onClick={(e) => e.stopPropagation()}
-            >
-                <option value="Professional">Professional</option>
-                <option value="Urgent">Urgent</option>
-                <option value="Friendly">Friendly</option>
-            </select>
-            <button
-                onClick={handleSend}
-                className="flex items-center justify-center gap-1 bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-sm w-full"
-                title="Send WhatsApp to Partner"
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M16.95 7.55a.69.69 0 0 1 .46.21l1.83 2a.69.69 0 0 1 .02.97l-2.12 2.22a.69.69 0 0 1-.98-.01l-2.73-2.92a.69.69 0 0 1 .08-.99l2.43-1.46a.71.71 0 0 1 1 0Z" /><path d="M8 12h.01" /><path d="M12 16h.01" /></svg>
-                WhatsApp
-            </button>
-        </div>
+        <button
+            onClick={handleSend}
+            disabled={isClosed}
+            className={`flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-sm w-full ${isClosed
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed hidden'
+                : isNotified
+                    ? 'bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-200'
+                    : 'bg-green-500 hover:bg-green-600 text-white'
+                }`}
+            title={isNotified ? "Resend Notification" : "Send WhatsApp Notification"}
+        >
+            {isNotified ? <Check size={14} /> : <MessageCircle size={14} />}
+            {isNotified ? "Notify Sent" : "Notify Partner"}
+        </button>
     );
 };
 
@@ -87,18 +65,19 @@ const Leads = () => {
     const [filter, setFilter] = useState('All');
     const [searchTerm, setSearchTerm] = useState('');
 
-    const fetchData = async () => {
-        setLoading(true);
+    const fetchData = async (background = false) => {
+        if (!background) setLoading(true);
         const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
         try {
             const [leadsRes, partnersRes] = await Promise.all([
                 axios.get(`${API_URL}/api/leads`),
                 axios.get(`${API_URL}/api/partners`)
             ]);
-            setLeads(leadsRes.data.data || []);
-            setPartners(partnersRes.data.data || []);
+            setLeads(leadsRes.data.data);
+            setPartners(partnersRes.data.data);
         } catch (error) {
             console.error("Error fetching data:", error);
+            if (!background) toast.error("Failed to load leads");
         } finally {
             setLoading(false);
         }
@@ -106,17 +85,24 @@ const Leads = () => {
 
     useEffect(() => {
         fetchData();
+        // Poll every 5 seconds for new leads
+        const interval = setInterval(() => {
+            fetchData(true);
+        }, 5000);
+        return () => clearInterval(interval);
     }, []);
+
+
 
     const handleStatusChange = async (id, newStatus) => {
         const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
         try {
             await axios.put(`${API_URL}/api/leads/${id}/status`, { status: newStatus });
-            // Optimistic update
             setLeads(leads.map(lead => lead._id === id ? { ...lead, status: newStatus } : lead));
+            toast.success(`Status updated to ${newStatus}`);
         } catch (error) {
             console.error("Failed to update status", error);
-            alert("Failed to update status");
+            toast.error("Failed to update status");
         }
     };
 
@@ -124,18 +110,43 @@ const Leads = () => {
         const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
         try {
             await axios.put(`${API_URL}/api/leads/${leadId}/assign`, { partnerId });
-            // Optimistic update
             const partner = partners.find(p => p._id === partnerId);
             setLeads(leads.map(lead => lead._id === leadId ? { ...lead, assignedTo: partner, status: 'Assigned' } : lead));
+            toast.success("Partner assigned successfully");
         } catch (error) {
             console.error("Failed to assign partner", error);
-            alert("Failed to assign partner");
+            toast.error("Failed to assign partner");
+        }
+    };
+
+    const handleNotify = async (id) => {
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        try {
+            const res = await axios.put(`${API_URL}/api/leads/${id}/notify`);
+            // Optimistic Update
+            setLeads(leads.map(lead => lead._id === id ? { ...res.data.data } : lead));
+        } catch (error) {
+            console.error("Failed to notify", error);
+            toast.error("Failed to log notification");
+        }
+    };
+
+    const handleDelete = async (id) => {
+        if (!window.confirm("Are you sure you want to delete this lead?")) return;
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        try {
+            await axios.delete(`${API_URL}/api/leads/${id}`);
+            setLeads(leads.filter(l => l._id !== id));
+            toast.success("Lead deleted successfully");
+        } catch (error) {
+            console.error("Failed to delete lead", error);
+            toast.error("Failed to delete lead");
         }
     };
 
     // Filter Logic
     const filteredLeads = leads.filter(lead => {
-        const matchesFilter = filter === 'All' || lead.status === filter;
+        const matchesFilter = filter === 'All' || lead.status === filter.toLowerCase();
         const matchesSearch = lead.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             lead.phone?.includes(searchTerm) ||
             lead.serviceType?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -144,18 +155,42 @@ const Leads = () => {
 
     const StatusBadge = ({ status }) => {
         const colors = {
-            'New': 'bg-blue-100 text-blue-800',
-            'Assigned': 'bg-orange-100 text-orange-800',
-            'Contacted': 'bg-purple-100 text-purple-800',
-            'Closed': 'bg-green-100 text-green-800',
-            'Lost': 'bg-red-100 text-red-800'
+            'new': 'bg-gray-100 text-gray-800',
+            'assigned': 'bg-green-100 text-green-800',
+            'contacted': 'bg-blue-100 text-blue-800',
+            'closed': 'bg-green-800 text-white',
+            'lost': 'bg-red-100 text-red-800'
         };
+        const normalizedStatus = status ? status.toLowerCase() : 'new';
+        const label = normalizedStatus.charAt(0).toUpperCase() + normalizedStatus.slice(1);
+
         return (
-            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${colors[status] || 'bg-gray-100 text-gray-800'}`}>
-                {status || 'New'}
+            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${colors[normalizedStatus] || 'bg-gray-100 text-gray-800'}`}>
+                {label}
             </span>
         );
     };
+
+    if (loading) {
+        return (
+            <div>
+                <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                    <div>
+                        <Skeleton variant="text" width={200} height={40} animation="wave" />
+                        <Skeleton variant="text" width={250} height={24} animation="wave" />
+                    </div>
+                    <Skeleton variant="rectangular" width={40} height={40} animation="wave" sx={{ borderRadius: 2 }} />
+                </div>
+
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6 flex flex-col md:flex-row gap-4 items-center">
+                    <Skeleton variant="rectangular" height={42} animation="wave" sx={{ borderRadius: 2, flex: 1, width: '100%' }} />
+                    <Skeleton variant="rectangular" width={150} height={42} animation="wave" sx={{ borderRadius: 2 }} />
+                </div>
+
+                <TableSkeleton columns={7} />
+            </div>
+        );
+    }
 
     return (
         <div>
@@ -222,7 +257,7 @@ const Leads = () => {
                                 <tr><td colSpan="7" className="px-6 py-8 text-center text-gray-500">No leads found matching your filters.</td></tr>
                             ) : (
                                 filteredLeads.map((lead) => (
-                                    <tr key={lead._id} className="hover:bg-gray-50 transition">
+                                    <tr key={lead._id} className="hover:bg-gray-50 transition group">
                                         <td className="px-6 py-4 text-sm text-gray-500">
                                             {new Date(lead.createdAt).toLocaleDateString()}
                                         </td>
@@ -241,9 +276,11 @@ const Leads = () => {
                                         </td>
                                         <td className="px-6 py-4">
                                             <select
-                                                className="text-sm border-gray-200 rounded p-1 w-full max-w-[150px] truncate"
+                                                className={`text-sm border-gray-200 rounded p-1 w-full max-w-[150px] truncate transition-colors ${lead.status === 'Closed' ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'hover:border-blue-400'
+                                                    }`}
                                                 value={lead.assignedTo?._id || ""}
                                                 onChange={(e) => handleAssign(lead._id, e.target.value)}
+                                                disabled={lead.status === 'Closed'}
                                             >
                                                 <option value="" disabled>Select Partner</option>
                                                 {partners
@@ -253,20 +290,35 @@ const Leads = () => {
                                             </select>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <WhatsAppNotify lead={lead} />
+                                            <WhatsAppNotify
+                                                lead={lead}
+                                                onNotify={handleNotify}
+                                            />
                                         </td>
                                         <td className="px-6 py-4">
-                                            <select
-                                                className="text-sm border border-gray-200 rounded px-2 py-1"
-                                                value={lead.status || 'New'}
-                                                onChange={(e) => handleStatusChange(lead._id, e.target.value)}
-                                            >
-                                                <option value="New">New</option>
-                                                <option value="Assigned">Assigned</option>
-                                                <option value="Contacted">Contacted</option>
-                                                <option value="Closed">Closed</option>
-                                                <option value="Lost">Lost</option>
-                                            </select>
+                                            <div className="flex items-center gap-2">
+                                                <select
+                                                    className={`text-sm border border-gray-200 rounded px-2 py-1 w-28 focus:ring-2 focus:ring-blue-500 outline-none ${lead.status === 'Closed' ? 'bg-gray-50 text-gray-400' : 'bg-white'
+                                                        }`}
+                                                    value={lead.status || 'New'}
+                                                    onChange={(e) => handleStatusChange(lead._id, e.target.value)}
+                                                    disabled={lead.status === 'Closed'}
+                                                >
+                                                    <option value="New">New</option>
+                                                    <option value="Assigned">Assigned</option>
+                                                    <option value="Contacted">Contacted</option>
+                                                    <option value="Closed">Closed</option>
+                                                    <option value="Lost">Lost</option>
+                                                </select>
+
+                                                <button
+                                                    onClick={() => handleDelete(lead._id)}
+                                                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition"
+                                                    title="Delete Lead"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))

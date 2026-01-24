@@ -1,38 +1,47 @@
-import React, { Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import Login from './pages/Login';
 import AdminLayout from './components/AdminLayout';
+import Dashboard from './pages/Dashboard';
+import Leads from './pages/Leads';
+import Partners from './pages/Partners';
 
-// Lazy load pages
-const Login = lazy(() => import('./pages/Login'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Leads = lazy(() => import('./pages/Leads'));
-const Partners = lazy(() => import('./pages/Partners'));
-
-// Loading Component
-const PageLoader = () => (
-  <div className="min-h-screen flex items-center justify-center bg-gray-100">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-900"></div>
-  </div>
-);
+import { Toaster } from 'react-hot-toast';
+import { useState, useEffect } from 'react';
 
 function App() {
+  const [toastPosition, setToastPosition] = useState('bottom-right');
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setToastPosition('bottom-center');
+      } else {
+        setToastPosition('bottom-right');
+      }
+    };
+
+    // Initial check
+    handleResize();
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   return (
     <AuthProvider>
-      <Router>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/login" element={<Login />} />
+      <Toaster position={toastPosition} />
+      <Routes>
+        <Route path="/login" element={<Login />} />
 
-            <Route path="/" element={<AdminLayout />}>
-              <Route index element={<Navigate to="/dashboard" replace />} />
-              <Route path="dashboard" element={<Dashboard />} />
-              <Route path="leads" element={<Leads />} />
-              <Route path="partners" element={<Partners />} />
-            </Route>
-          </Routes>
-        </Suspense>
-      </Router>
+        <Route path="/" element={<AdminLayout />}>
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="leads" element={<Leads />} />
+          <Route path="partners" element={<Partners />} />
+        </Route>
+      </Routes>
     </AuthProvider>
   );
 }

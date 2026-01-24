@@ -52,15 +52,15 @@ const Footer = () => {
                         <h3 className="text-lg font-bold mb-6 border-b border-gray-700 pb-2 inline-block">Contact Us</h3>
                         <ul className="space-y-4">
                             <li>
-                                <a href="tel:+919744702482" className="flex items-center gap-3 text-gray-400 hover:text-white transition">
+                                <a href="tel:+918606093213" className="flex items-center gap-3 text-gray-400 hover:text-white transition">
                                     <div className="p-2 bg-white/5 rounded-full text-secondary">
                                         <Phone size={18} />
                                     </div>
-                                    <span>+91 97447 02482</span>
+                                    <span>+91 8606093213</span>
                                 </a>
                             </li>
                             <li>
-                                <a href="https://wa.me/919744702482?text=Hi,%20I'm%20interested%20in%20your%20construction%20services." className="flex items-center gap-3 text-gray-400 hover:text-white transition">
+                                <a href="https://wa.me/918606093213?text=Hi,%20I'm%20interested%20in%20your%20construction%20services." className="flex items-center gap-3 text-gray-400 hover:text-white transition">
                                     <div className="p-2 bg-white/5 rounded-full text-green-500">
                                         <MessageCircle size={18} />
                                     </div>
